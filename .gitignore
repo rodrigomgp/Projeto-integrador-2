@@ -1,0 +1,31 @@
+# --- SEGURANÇA E CREDENCIAIS (EXTREMAMENTE IMPORTANTE) ---
+.env
+auth_nova/
+auth_info/
+tokens.json
+credenciais/
+*.pem
+*.key
+
+# --- JAVASCRIPT / NODE.JS ---
+node_modules/
+npm-debug.log*
+package-lock.json (opcional, mas recomendado manter se o grupo usar versões diferentes)
+
+# --- PYTHON (MOTOR DO BOT) ---
+venv/
+env/
+__pycache__/
+*.py[cod]
+
+# --- BANCO DE DADOS ---
+*.sqlite3
+*.db
+*.sql.gz
+
+# --- DASHBOARDS E FERRAMENTAS ---
+.vscode/
+.idea/
+dist/
+build/
+.DS_Store
