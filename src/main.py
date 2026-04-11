@@ -6,7 +6,7 @@ from supabase import create_client, Client
 
 # pip install whatsapp-web.py supabase python-dotenv
 from whatsapp_web_py import WhatsApp, Message
-#commit funcionou 1.0
+
 # ── Configuração ──────────────────────────────────────────────────────────────
 load_dotenv()
 
