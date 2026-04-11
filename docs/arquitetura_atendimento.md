@@ -116,7 +116,7 @@ Mensagem de Erro:
 
 ## Diagrama de Lógica (Máquina de Estados)
 
-Abaixo está o diagrama visual para guiar o desenvolvimento em Python e as interações com o banco de dados:
+Abaixo está o diagrama visual para guiar o desenvolvimento em Node.js e as interações com o banco de dados:
 
 ```mermaid
 stateDiagram-v2
