@@ -16,7 +16,7 @@ Atualmente, a HV Soluções Prediais enfrenta um gargalo no seu fluxo de atendim
 **O Problema:** Durante a execução de serviços ou visitas técnicas, é impossível dar uma resposta imediata aos novos leads. A demora no primeiro contato resulta diretamente na perda do orçamento para a concorrência.
 
 # 3. SOLICITAÇÃO DE SOLUÇÃO TECNOLÓGICA (ESCOPO ATUALIZADO)
-Solicitamos ao grupo de desenvolvimento a criação de um Assistente Virtual (Chatbot), desenvolvido em **Python** e integrado ao banco de dados **Supabase**, para atuar como a primeira interface de atendimento.
+Solicitamos ao grupo de desenvolvimento a criação de um Assistente Virtual (Chatbot), desenvolvido em **JavaScript (Node.js)** utilizando a biblioteca **Baileys**, e integrado ao banco de dados **Supabase**, para atuar como a primeira interface de atendimento.
 
 O bot deve operar como uma **Máquina de Estados**, guiando o cliente por um fluxo fechado de perguntas para qualificar o lead antes da intervenção humana.
 
