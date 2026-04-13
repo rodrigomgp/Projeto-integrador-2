@@ -8,36 +8,25 @@ E-mail: hvsolucoesprediais@gmail.com
 ---
 
 # 1. APRESENTAÇÃO DA EMPRESA
-A HV Soluções Prediais é uma empresa prestadora de serviços de manutenção e reforma predial, operando tanto no segmento residencial quanto comercial. Atualmente, a empresa está estruturada como MEI e possui uma operação centralizada. Nossos principais serviços incluem elétrica, hidráulica, pintura, vidraçaria e reparos estruturais.
+A HV Soluções Prediais é uma empresa especialista em Manutenção Residencial e Comercial. Atualmente, a empresa está estruturada como MEI e possui uma operação centralizada. Nossos principais serviços incluem elétrica, hidráulica, pintura, vidraçaria e reparos estruturais.
 
 # 2. DESAFIO DE NEGÓCIO
-Atualmente, a HV Soluções Prediais enfrenta um gargalo no seu fluxo de atendimento. Sendo uma empresa com operação solo, o profissional responsável pela execução técnica é o mesmo responsável pelo atendimento comercial via WhatsApp.
-
-**O Problema:** Durante a execução de serviços ou visitas técnicas, é impossível dar uma resposta imediata aos novos leads. A demora no primeiro contato resulta diretamente na perda do orçamento para a concorrência.
+Atualmente, a HV Soluções Prediais enfrenta um gargalo no seu fluxo de atendimento. Sendo uma empresa com operação solo, o profissional responsável pela execução técnica é o mesmo responsável pelo atendimento comercial via WhatsApp. A demora no primeiro contato resulta diretamente na perda do orçamento para a concorrência.
 
 # 3. SOLICITAÇÃO DE SOLUÇÃO TECNOLÓGICA (ESCOPO ATUALIZADO)
-Solicitamos ao grupo de desenvolvimento a criação de um Assistente Virtual (Chatbot), desenvolvido em **JavaScript (Node.js)** utilizando a biblioteca **Baileys**, e integrado ao banco de dados **Supabase**, para atuar como a primeira interface de atendimento.
+Solicitamos ao grupo de desenvolvimento a criação de um Assistente Virtual (Chatbot), desenvolvido em **JavaScript (Node.js)** utilizando a biblioteca **Baileys**, e integrado ao banco de dados **Supabase**.
 
 O bot deve operar como uma **Máquina de Estados**, guiando o cliente por um fluxo fechado de perguntas para qualificar o lead antes da intervenção humana.
 
 **Requisitos Funcionais Obrigatórios:**
-* **Identificação Automática:** Consultar o Supabase pelo número de telefone logo na primeira mensagem para identificar se é um cliente novo ou recorrente (saudação personalizada).
-* **Filtro de Mídia e Fallback:** O sistema não deve processar áudios, stickers ou emojis isolados. Em caso de envio incorreto ou respostas fora do menu numérico, o bot deve possuir um limite de 3 tentativas falhas antes de acionar a "Mensagem de Transbordo" e encerrar a sessão virtual.
-* **Menu de Direcionamento:** Separar quem busca informações de "Serviços em Andamento" de quem deseja um "Novo Serviço".
-* **Triagem de Novo Serviço:** Para novos pedidos, o bot deve coletar e salvar no banco de dados, em ordem estrita:
-  1. A categoria do serviço (Pintura, Hidráulica, Elétrica, Manutenções Gerais).
-  2. Um resumo em texto do problema/demanda.
-  3. A captação de até 2 fotos do local (caso o cliente possua).
-  4. A macrorregião do atendimento (Centro POA, Zona Norte POA, Zona Sul POA, Região Metropolitana, Guaíba, Barra do Ribeiro, Outros).
-  5. O nome do cliente (apenas se for o primeiro contato).
+* **Identificação Automática:** Consultar o Supabase pelo número de telefone logo na primeira mensagem.
+* **Filtro de Mídia e Fallback:** Limite de 3 tentativas falhas antes de acionar a "Mensagem de Transbordo".
+* **Menu de Direcionamento e Triagem:** Coletar categoria, resumo do problema, até 2 fotos, macrorregião (POA, Metropolitana, Guaíba, Barra do Ribeiro, etc.) e nome.
 
-*(Nota aos desenvolvedores: O detalhamento técnico das mensagens e diagrama de estados encontra-se no arquivo `arquitetura_atendimento.md` documentado neste repositório).*
+# 4. CONSIDERAÇÕES DE SEGURANÇA E LGPD
+A HV Soluções Prediais preza pela segurança de seus clientes. É requisito indispensável que a ferramenta trate os dados (telefones, endereços, nomes e mídias) com protocolos de segurança adequados no Supabase.
 
-# 4. CONSIDERAÇÕES DE SEGURANÇA (LGPD)
-A HV Soluções Prediais preza pela segurança de seus clientes. É requisito indispensável que a ferramenta trate os dados (telefones, endereços, nomes e mídias) com protocolos de segurança e que o banco de dados no Supabase esteja devidamente protegido contra acessos não autorizados.
+O tratamento dos dados no bot é baseado no **Consentimento** e na **Execução de Contrato** (Art. 7º, I e V da LGPD). O sistema deverá apresentar um aviso de privacidade no primeiro contato e registrar o aceite dos termos antes de dar seguimento ao atendimento.
 
 # 5. RESULTADO ESPERADO
-Esperamos reduzir o tempo de resposta inicial para zero. Quando o técnico responsável abrir o WhatsApp após finalizar um trabalho em campo, ele não verá mensagens soltas, mas sim "Tickets/Registros" pré-qualificados, com o escopo do problema, fotos e localização do cliente já organizados, prontos para a elaboração ágil do orçamento final.
-
----
-HV Soluções Prediais
+Esperamos reduzir o tempo de resposta inicial para zero, recebendo "Tickets" pré-qualificados, com o escopo do problema, fotos e localização do cliente já organizados, prontos para a elaboração ágil do orçamento.

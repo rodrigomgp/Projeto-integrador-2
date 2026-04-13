@@ -10,23 +10,17 @@ Regra de Falha (Fallback): Máximo de 3 tentativas inválidas consecutivas em qu
 Identificação Inicial: Ao receber a primeira mensagem, o sistema captura o número de telefone e faz uma query no Supabase.
 
 
-Etapa 0: Identificação e Saudação
-
-Ação: Buscar Telefone no Supabase. (BANCO DE DADOS: Consulta)
-
-Se Cliente Novo: Salvar Telefone. (BANCO DE DADOS: Insert)
-
-Mensagem: "Olá! Bem-vindo ao atendimento da HV Soluções Prediais. No momento estou em atendimento, mas meu assistente virtual vai adiantar o seu pedido. Por favor, escolha uma opção:"
-
-Se Cliente Existente (Nome já cadastrado):
-
-Mensagem: "Olá, [Nome do Cliente]! Que bom ter você de volta à HV Soluções. No momento estou ocupado, mas vamos adiantar o que você precisa. Escolha uma opção:"
-
+Etapa 0: Identificação, LGPD e Saudação
+Ação: Buscar Telefone no Supabase. `(BANCO DE DADOS: Consulta)`
+Se Cliente Novo: Salvar Telefone. `(BANCO DE DADOS: Insert)`
+    * *Mensagem de LGPD (Primeiro Envio):* "Olá! Bem-vindo ao atendimento da HV Soluções Prediais. 🛠️ Para sua segurança e em conformidade com a LGPD, informamos que os dados coletados (nome, telefone e fotos) serão usados apenas para a elaboração de orçamentos e prestação dos serviços de manutenção. Ao prosseguir, você concorda com este uso."
+    * *Mensagem de Saudação:* "No momento estou em atendimento, mas meu assistente virtual vai adiantar o seu pedido. Por favor, escolha uma opção:"
+    * *Ação Interna:* O sistema registra o `aceitou_termos = true` no banco de dados assim que o cliente responde com uma opção válida.
+Se Cliente Existente (Nome cadastrado e Termos aceitos):
+    * *Mensagem:* "Olá, [Nome do Cliente]! Que bom ter você de volta à HV Soluções. No momento estou ocupado, mas vamos adiantar o que você precisa. Escolha uma opção:"
 Menu Principal:
-
-1 Novo Serviço
-
-2 Informações de serviço em andamento
+    1 Novo Serviço
+    2️ Informações de serviço em andamento
 
 Etapa 1: Direcionamento
 
