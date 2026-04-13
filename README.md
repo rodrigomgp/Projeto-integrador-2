@@ -1,6 +1,6 @@
 # Projeto-integrador-2
 
-# 🤖 WhatsApp Bot + Intregrado com Supabase
+# 🤖 WhatsApp Bot + Integrado com Supabase
 
 Projeto de automação de mensagens via WhatsApp integrado com banco de dados relacional (PostgreSQL). 
 
