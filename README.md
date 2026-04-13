@@ -1,6 +1,6 @@
 # Projeto-integrador-2
 
-# 🤖 WhatsApp Bot + Supabase Integration
+# 🤖 WhatsApp Bot + Intregrado com Supabase
 
 Projeto de automação de mensagens via WhatsApp integrado com banco de dados relacional (PostgreSQL). 
 
@@ -8,7 +8,7 @@ Projeto de automação de mensagens via WhatsApp integrado com banco de dados re
 - Conexão via QR Code.
 - Identificação automática de usuários (JID/LID).
 - **Integração com Supabase:** Cadastro automático de novos usuários.
-- **Persistência de dados:** Evita duplicidade de registros usando lógica de `upsert`.
+- **Persistência de dados:** Evita duplicidade de registros.
 - Filtro de mensagens em tempo real (ignora histórico antigo).
 
 ## Tecnologias Utilizadas
