@@ -6,6 +6,7 @@ tokens.json
 credenciais/
 *.pem
 *.key
+sessao_final/
 
 # --- JAVASCRIPT / NODE.JS ---
 node_modules/
