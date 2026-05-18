@@ -29,8 +29,9 @@ async function connectToWhatsApp() {
         browser: ["Ubuntu", "Chrome", "20.0.04"],
         syncFullHistory: false,
         connectTimeoutMs: 60000,
-        defaultQueryTimeoutMs: 0,
-        keepAliveIntervalMs: 10000
+        // As duas linhas abaixo foram alteradas para evitar o "Congelamento Silencioso"
+        defaultQueryTimeoutMs: 60000, // Limita a espera a 60 segundos (antes era 0 - infinito)
+        keepAliveIntervalMs: 30000    // Aumenta o intervalo de ping para 30s (melhora a estabilidade)
     });
 
 
@@ -52,7 +53,8 @@ async function connectToWhatsApp() {
             console.log(`⚠️ Conexão fechada. Status: ${statusCode}. Reconectando: ${deveReconectar}`);
 
             if (deveReconectar) {
-                connectToWhatsApp();
+                console.log('🔄 Queda detectada. Encerrando o processo para uma reinicialização limpa...');
+                process.exit(1); // O PM2 vai detectar essa saída e reiniciar o bot do zero em 1 segundo.
             } else {
                 // Se a falha foi drástica (Ex: o usuário removeu o bot pelo celular), orientamos
                 // o desenvolvedor a resetar a pasta de modo limpo em vez de forçar laços infinitos.
@@ -65,30 +67,62 @@ async function connectToWhatsApp() {
 
     sock.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
-        if (!msg.message || msg.key.fromMe) return;
+        if (!msg.message) return; // Agora não ignoramos mais as suas mensagens logo de cara!
 
         const jid = msg.key.remoteJid;
 
-        // Trava Antissistemas e Grupos: Impedimos o bot de tentar decifrar figurinhas em grupo ou de responder atualizações de status silenciosamente.
-        if (jid.includes('@g.us') || jid === 'status@broadcast') {
-            return; // Encerra tudo instantaneamente poupando recursos do servidor
+        if (jid.includes('@g.us') || jid === 'status@broadcast') return;
+
+        const type = Object.keys(msg.message)[0];
+        const resposta = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || "").trim();
+        const numeroWhatsApp = jid.split('@')[0];
+
+  // --- MODO HUMANO (HECTOR): SE A MENSAGEM FOI ENVIADA POR VOCÊ ---
+        if (msg.key.fromMe) {
+            // Lista de frases personalizadas para encerramento automático
+            const frasesDeEncerramento = [
+                'obrigado pela preferencia',
+                'obrigado pela preferência',
+                'combinado, obrigado',
+                'obrigado pelo contato',
+                'qualquer duvida estou a disposição',
+                'qualquer duvida estou a disposicao',
+                'qualquer dúvida estou a disposição',
+                '#encerrar' // Mantido como comando de segurança
+            ];
+
+            // Remove pontos e exclamações e passa para minúsculo para evitar falhas na comparação
+            const respostaTratada = resposta.toLowerCase().replace(/[.!]/g, '').trim();
+
+            // Verifica se o texto enviado contém alguma das frases cadastradas
+            const deveEncerrar = frasesDeEncerramento.some(frase => respostaTratada.includes(frase));
+
+            if (deveEncerrar) {
+                await supabase.from('atendimentos')
+                    .update({ status: 'finalizado' })
+                    .eq('numero_whatsapp', numeroWhatsApp)
+                    .in('status', ['aberto', 'em_andamento']);
+                
+                console.log(`✅ Atendimento com ${numeroWhatsApp} encerrado via frase de despedida.`);
+            }
+            return; // O bot ignora o restante do fluxo para as suas mensagens
         }
 
-        const numeroWhatsApp = jid.split('@')[0];
-        const type = Object.keys(msg.message)[0];
+       // 1. Ignora mensagens invisíveis do sistema (Evita Loop Infinito)
+        if (type === 'protocolMessage' || type === 'senderKeyDistributionMessage' || type === 'messageContextInfo') return;
 
-        // Extrator Suave: Pegamos o que o cliente digitou independente se foi texto bruto ou formatado, 
-        // e o ".trim()" expurga qualquer espaço cego apertado sem querer pelo cliente.
-        const resposta = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || "").trim();
-
-        // Regra Protetiva de Mídia: O bot limitará seu ouvido apenas para diálogos e fotos,
-        const tiposPermitidos = ['conversation', 'extendedTextMessage', 'imageMessage'];
-        if (!tiposPermitidos.includes(type)) {
+        // 2. Regra Protetiva de Mídia: Pune apenas o que realmente for bloqueado
+        const tiposBloqueados = ['audioMessage', 'stickerMessage', 'documentMessage', 'videoMessage'];
+        if (tiposBloqueados.includes(type)) {
             await sock.sendMessage(jid, { text: "Desculpe, nosso assistente virtual ainda não compreende áudios ou figurinhas. Por favor, responda com texto ou números das opções." });
             return;
         }
 
-        try {
+        // 3. Libera apenas texto ou imagem para a Máquina de Estados
+        const tiposPermitidos = ['conversation', 'extendedTextMessage', 'imageMessage'];
+        if (!tiposPermitidos.includes(type)) return;
+
+try {
             // Raio-X Primário: Varremos os bancos de nuvem para entender duas coisas cruciais:
             // De quem é o número e se já estávamos lidando com a solicitação dele recentemente.
             let { data: usuario, error: erroUser } = await supabase
@@ -97,16 +131,26 @@ async function connectToWhatsApp() {
                 .eq('numero', numeroWhatsApp)
                 .maybeSingle();
 
+            // Busca o atendimento em aberto. Se houver lixo duplicado de testes, 
+            // ele ordena pela data de criação e pega apenas o mais recente, evitando o erro PGRST116.
             let { data: atendimento, error: erroAtend } = await supabase
                 .from('atendimentos')
                 .select('*')
                 .eq('numero_whatsapp', numeroWhatsApp)
-                .eq('status', 'aberto')
+                .in('status', ['aberto', 'em_andamento'])
+                .order('criado_em', { ascending: false }) // Pega do mais novo para o mais velho
+                .limit(1)                                 // Força o banco a devolver apenas 1
                 .maybeSingle();
 
             if (erroAtend) {
                 console.log("❌ Atenção: Tivemos ruído na comunicação com o Supabase:", erroAtend);
             }
+
+            // A MÁGICA ACONTECE AQUI: Se estiver em andamento com você, o bot morre e não faz nada!
+            if (atendimento && atendimento.status === 'em_andamento') {
+                return;
+            }
+
 
             // Cadastramento Orgânico: Se o usuário não estiver cadastrado, cadastraremos.
             if (!usuario) {
@@ -324,9 +368,10 @@ async function tratarErro(jid, atendimento, sock) {
 }
 
 async function encerrarAtendimento(id) {
-    const { error } = await supabase.from('atendimentos').update({ status: 'finalizado' }).eq('id', id);
+    // Agora o bot muda para 'em_andamento' ao invés de 'finalizado', passando o bastão para você
+    const { error } = await supabase.from('atendimentos').update({ status: 'em_andamento' }).eq('id', id);
     if (error) {
-        console.error("❌ ERRO AO ENCERRAR ATENDIMENTO:", error);
+        console.error("❌ ERRO AO ATUALIZAR ATENDIMENTO:", error);
         throw error;
     }
 }
@@ -344,3 +389,9 @@ async function finalizarTudo(jid, nome, atendimento, sock) {
 }
 
 connectToWhatsApp();
+
+// Gatilho de Segurança Máxima: Se qualquer erro invisível travar o Node.js, ele força a reinicialização limpa via PM2
+process.on('uncaughtException', function (err) {
+    console.log('🚨 Erro crítico e silencioso detectado. Forçando PM2 a reiniciar o sistema...', err);
+    process.exit(1);
+});
