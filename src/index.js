@@ -138,8 +138,8 @@ try {
                 .select('*')
                 .eq('numero_whatsapp', numeroWhatsApp)
                 .in('status', ['aberto', 'em_andamento'])
-                .order('criado_em', { ascending: false }) // Pega do mais novo para o mais velho
-                .limit(1)                                 // Força o banco a devolver apenas 1
+                .order('created_at', { ascending: false }) // <-- Alterado aqui para o padrão do Supabase
+                .limit(1)                                 
                 .maybeSingle();
 
             if (erroAtend) {
