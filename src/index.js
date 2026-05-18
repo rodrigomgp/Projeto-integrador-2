@@ -77,9 +77,8 @@ async function connectToWhatsApp() {
         const resposta = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || "").trim();
         const numeroWhatsApp = jid.split('@')[0];
 
-  // --- MODO HUMANO (HECTOR): SE A MENSAGEM FOI ENVIADA POR VOCÊ ---
+ // --- MODO HUMANO (HECTOR): SE A MENSAGEM FOI ENVIADA POR VOCÊ ---
         if (msg.key.fromMe) {
-            // Lista de frases personalizadas para encerramento automático
             const frasesDeEncerramento = [
                 'obrigado pela preferencia',
                 'obrigado pela preferência',
@@ -88,24 +87,53 @@ async function connectToWhatsApp() {
                 'qualquer duvida estou a disposição',
                 'qualquer duvida estou a disposicao',
                 'qualquer dúvida estou a disposição',
-                '#encerrar' // Mantido como comando de segurança
+                '#encerrar'
             ];
 
-            // Remove pontos e exclamações e passa para minúsculo para evitar falhas na comparação
             const respostaTratada = resposta.toLowerCase().replace(/[.!]/g, '').trim();
-
-            // Verifica se o texto enviado contém alguma das frases cadastradas
             const deveEncerrar = frasesDeEncerramento.some(frase => respostaTratada.includes(frase));
 
             if (deveEncerrar) {
+                // Você finalizou a conversa, o bot fica livre para atender na próxima vez
                 await supabase.from('atendimentos')
                     .update({ status: 'finalizado' })
                     .eq('numero_whatsapp', numeroWhatsApp)
                     .in('status', ['aberto', 'em_andamento']);
                 
                 console.log(`✅ Atendimento com ${numeroWhatsApp} encerrado via frase de despedida.`);
+            } else {
+                // AUTO-SILENCIAR: Se você mandar QUALQUER outra mensagem, o sistema entende que você assumiu o controle.
+                let { data: atdAtivo } = await supabase
+                    .from('atendimentos')
+                    .select('id, status')
+                    .eq('numero_whatsapp', numeroWhatsApp)
+                    .in('status', ['aberto', 'em_andamento'])
+                    .order('created_at', { ascending: false }) // Prevenção do erro PGRST116
+                    .limit(1)
+                    .maybeSingle();
+
+                if (atdAtivo) {
+                    // Se o bot estava falando com o cliente (aberto), ele se cala (em_andamento)
+                    if (atdAtivo.status === 'aberto') {
+                        await supabase.from('atendimentos').update({ status: 'em_andamento' }).eq('id', atdAtivo.id);
+                        console.log(`🔇 Bot silenciado: O Hector assumiu a conversa com ${numeroWhatsApp}.`);
+                    }
+                } else {
+                    // Se você chamou alguém primeiro, o bot cria um usuário e um chamado oculto para não mandar o menu
+                    let { data: usuario } = await supabase.from('usuarios').select('numero').eq('numero', numeroWhatsApp).maybeSingle();
+                    if (!usuario) {
+                        await supabase.from('usuarios').insert([{ numero: numeroWhatsApp }]);
+                    }
+
+                    await supabase.from('atendimentos').insert([{
+                        numero_whatsapp: numeroWhatsApp,
+                        etapa: 0,
+                        status: 'em_andamento'
+                    }]);
+                    console.log(`🔇 Chat iniciado por você. Bot silenciado automaticamente para ${numeroWhatsApp}.`);
+                }
             }
-            return; // O bot ignora o restante do fluxo para as suas mensagens
+            return; // O bot ignora o resto do código para mensagens enviadas por você
         }
 
        // 1. Ignora mensagens invisíveis do sistema (Evita Loop Infinito)
