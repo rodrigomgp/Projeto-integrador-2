@@ -73,12 +73,32 @@ async function connectToWhatsApp() {
 
         if (jid.includes('@g.us') || jid === 'status@broadcast') return;
 
-        const type = Object.keys(msg.message)[0];
+       // 1. Identifica o tipo da mensagem. Alterado de 'const' para 'let' para permitir o desempacotamento de mensagens temporárias
+        let type = Object.keys(msg.message)[0];
+        if (type === 'ephemeralMessage') {
+            type = Object.keys(msg.message.ephemeralMessage.message)[0];
+        }
+
+        // 2. Filtra pacotes invisíveis de rede ANTES do Modo Humano (evita falsos silenciamentos por recibos do WhatsApp)
+        if (type === 'protocolMessage' || type === 'senderKeyDistributionMessage' || type === 'messageContextInfo') return;
+
         const resposta = (msg.message?.conversation || msg.message?.extendedTextMessage?.text || "").trim();
         const numeroWhatsApp = jid.split('@')[0];
 
- // --- MODO HUMANO (HECTOR): SE A MENSAGEM FOI ENVIADA POR VOCÊ ---
+        // --- MODO HUMANO (HECTOR): SE A MENSAGEM FOI ENVIADA POR VOCÊ ---
         if (msg.key.fromMe) {
+            
+            // Trava de Segurança: Ignora se a mensagem tiver a assinatura estrutural do próprio robô (evita auto-silenciamento)
+            const id = msg.key.id || '';
+            if (id.startsWith('BAE5') || (id.startsWith('3EB0') && id.length === 22) || id.length === 16) {
+                return; 
+            }
+
+            // Garante que o bot só vai analisar interações de texto ou imagem real enviadas por você
+            if (type !== 'conversation' && type !== 'extendedTextMessage' && type !== 'imageMessage') {
+                return;
+            }
+
             const frasesDeEncerramento = [
                 'obrigado pela preferencia',
                 'obrigado pela preferência',
@@ -94,7 +114,7 @@ async function connectToWhatsApp() {
             const deveEncerrar = frasesDeEncerramento.some(frase => respostaTratada.includes(frase));
 
             if (deveEncerrar) {
-                // Você finalizou a conversa, o bot fica livre para atender na próxima vez
+                // Hector encerrou o atendimento: libera o cliente no Supabase
                 await supabase.from('atendimentos')
                     .update({ status: 'finalizado' })
                     .eq('numero_whatsapp', numeroWhatsApp)
@@ -102,24 +122,22 @@ async function connectToWhatsApp() {
                 
                 console.log(`✅ Atendimento com ${numeroWhatsApp} encerrado via frase de despedida.`);
             } else {
-                // AUTO-SILENCIAR: Se você mandar QUALQUER outra mensagem, o sistema entende que você assumiu o controle.
+                // Auto-Silenciar: Se você mandou uma mensagem manual, o bot passa o controle para você
                 let { data: atdAtivo } = await supabase
                     .from('atendimentos')
                     .select('id, status')
                     .eq('numero_whatsapp', numeroWhatsApp)
                     .in('status', ['aberto', 'em_andamento'])
-                    .order('created_at', { ascending: false }) // Prevenção do erro PGRST116
+                    .order('created_at', { ascending: false }) 
                     .limit(1)
                     .maybeSingle();
 
                 if (atdAtivo) {
-                    // Se o bot estava falando com o cliente (aberto), ele se cala (em_andamento)
                     if (atdAtivo.status === 'aberto') {
                         await supabase.from('atendimentos').update({ status: 'em_andamento' }).eq('id', atdAtivo.id);
-                        console.log(`🔇 Bot silenciado: O Hector assumiu a conversa com ${numeroWhatsApp}.`);
+                        console.log(`🔇 Bot silenciado: Você assumiu a conversa com ${numeroWhatsApp}.`);
                     }
                 } else {
-                    // Se você chamou alguém primeiro, o bot cria um usuário e um chamado oculto para não mandar o menu
                     let { data: usuario } = await supabase.from('usuarios').select('numero').eq('numero', numeroWhatsApp).maybeSingle();
                     if (!usuario) {
                         await supabase.from('usuarios').insert([{ numero: numeroWhatsApp }]);
@@ -133,12 +151,10 @@ async function connectToWhatsApp() {
                     console.log(`🔇 Chat iniciado por você. Bot silenciado automaticamente para ${numeroWhatsApp}.`);
                 }
             }
-            return; // O bot ignora o resto do código para mensagens enviadas por você
+            return; // Encerra aqui a execução para mensagens enviadas por você
         }
 
-       // 1. Ignora mensagens invisíveis do sistema (Evita Loop Infinito)
-        if (type === 'protocolMessage' || type === 'senderKeyDistributionMessage' || type === 'messageContextInfo') return;
-
+      
         // 2. Regra Protetiva de Mídia: Pune apenas o que realmente for bloqueado
         const tiposBloqueados = ['audioMessage', 'stickerMessage', 'documentMessage', 'videoMessage'];
         if (tiposBloqueados.includes(type)) {
